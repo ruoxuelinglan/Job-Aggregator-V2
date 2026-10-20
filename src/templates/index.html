@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>求职/兼职信息聚合系统 - 控制台</title>
+    <style>
+        /* 全局样式复位 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background-color: #f0f2f5; color: #303133; min-height: 100vh; display: flex; }
+
+        /* ========== 左侧侧边栏 ========== */
+        .sidebar { width: 220px; background-color: #304156; color: #bfcbd9; display: flex; flex-direction: column; transition: width 0.3s; }
+        .logo-area { height: 60px; line-height: 60px; text-align: center; font-size: 20px; font-weight: bold; color: #fff; background-color: #2b3643; border-bottom: 1px solid #1f2d3d; }
+        .nav-menu { list-style: none; padding-top: 20px; }
+        .nav-item { padding: 15px 20px; cursor: pointer; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; gap: 10px; }
+        .nav-item.active { color: #409eff; background-color: #1f2d3d; border-left: 4px solid #409eff; padding-left: 16px; }
+        .nav-info { cursor: default; color: #6c7a8c; font-size: 12px; padding: 10px 20px; }
+
+        /* ========== 右侧主体区域 ========== */
+        .main-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* 顶部导航条 */
+        .top-header { height: 60px; background: #fff; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 1px 4px rgba(0,21,41,.08); z-index: 10; }
+        .breadcrumb { font-size: 14px; color: #606266; font-weight: 500; }
+        .breadcrumb span { color: #97a8be; margin: 0 5px; }
+
+        /* 内容区域 */
+        .content-area { padding: 20px; flex: 1; overflow-y: auto; }
+
+        /* 卡片容器 */
+        .card { background: #fff; border-radius: 4px; border: 1px solid #ebeef5; box-shadow: 0 2px 12px 0 rgba(0,0,0,.1); margin-bottom: 20px; padding: 20px; }
+
+        /* 操作工具栏 */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .toolbar-left { display: flex; gap: 10px; align-items: center; }
+        .toolbar-right { display: flex; gap: 10px; }
+
+        /* 按钮样式 */
+        .btn { padding: 8px 16px; border-radius: 4px; border: 1px solid transparent; font-size: 14px; cursor: pointer; outline: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; color: #fff; text-decoration: none; }
+        .btn-primary { background-color: #409eff; border-color: #409eff; }
+        .btn-primary:hover { background-color: #66b1ff; border-color: #66b1ff; }
+        .btn-success { background-color: #67c23a; border-color: #67c23a; }
+        .btn-success:hover { background-color: #85ce61; border-color: #85ce61; }
+        .btn-warning { background-color: #e6a23c; border-color: #e6a23c; }
+        .btn-warning:hover { background-color: #ebb563; border-color: #ebb563; }
+        .btn-default { background-color: #fff; border-color: #dcdfe6; color: #606266; }
+        .btn-default:hover { color: #409eff; border-color: #c6e2ff; background-color: #ecf5ff; }
+
+        /* 搜索框 */
+        .search-input { width: 300px; padding: 8px 15px; border: 1px solid #dcdfe6; border-radius: 4px; outline: none; font-size: 14px; transition: 0.2s; }
+        .search-input:focus { border-color: #409eff; }
+
+        /* 统计数据 */
+        .stats-bar { background: #e8f4ff; color: #409eff; padding: 10px 20px; border-radius: 4px; font-size: 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .stats-bar strong { font-size: 18px; color: #f56c6c; }
+
+        /* ========== 表格样式 ========== */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th, .data-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ebeef5; }
+        .data-table th { background-color: #394c5d; color: #fff; font-weight: 500; white-space: nowrap; }
+        .data-table tr:hover td { background-color: #f5f7fa; }
+        .data-table td { color: #606266; }
+
+        /* 英文、中文列特别处理 */
+        .td-en { color: #909399; font-size: 13px; }
+        .td-zh { font-weight: bold; color: #303133; }
+
+        /* 表格内操作按钮 */
+        .action-btn { display: inline-block; padding: 4px 8px; border-radius: 3px; font-size: 12px; text-decoration: none; color: #fff; border: none; cursor: pointer; }
+        .btn-del { background-color: #f56c6c; }
+        .btn-del:hover { background-color: #f78989; }
+
+        /* ECharts 图表容器 */
+        #chart-container { width: 100%; height: 350px; margin-bottom: 10px; }
+
+        /* 提示信息框 */
+        .alert-msg { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <div class="logo-area">🕷️ JobCrawl</div>
+        <ul class="nav-menu">
+            <li class="nav-item active">📊 数据面板</li>
+            <li class="nav-info">系统版本: v1.0.0</li>
+            <li class="nav-info">数据源: GitHub API</li>
+        </ul>
+    </aside>
+
+    <!-- 右侧主体 -->
+    <main class="main-container">
+        <!-- 顶部导航 -->
+        <header class="top-header">
+            <div class="breadcrumb">主页 <span>/</span> 数据面板</div>
+        </header>
+
+        <!-- 内容区 -->
+        <div class="content-area">
+
+            {% if msg %}
+            <div class="alert-msg">
+                {{ msg }}
+            </div>
+            {% endif %}
+
+            <!-- 数据总览卡片 -->
+            <div class="card" style="padding: 15px 20px;">
+                <div class="stats-bar">
+                    📊 系统当前共收录 <strong>{{ jobs|length }}</strong> 条招聘信息
+                </div>
+                <div id="chart-container"></div>
+            </div>
+
+            <!-- 核心数据卡片 -->
+            <div class="card">
+                <!-- 工具栏 -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <a href="/crawl" class="btn btn-success">🕷️ 抓取新数据</a>
+                        <button onclick="showTranslateTip()" class="btn btn-primary">🌐 翻译引擎</button>
+                        <a href="/export" class="btn btn-warning">📥 导出 Excel</a>
+                    </div>
+                    <div class="toolbar-right">
+                        <form method="GET" action="/" style="display: flex; gap: 10px; margin: 0;">
+                            <input type="text" name="keyword" class="search-input" placeholder="输入中文或英文进行检索..." value="{{ keyword }}">
+                            <button type="submit" class="btn btn-default">搜索</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 表格 -->
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th width="60">序号</th>
+                            <th>英文原版职位名 (GitHub)</th>
+                            <th>中文翻译名 (NLP清洗)</th>
+                            <th>公司名称 (仓库)</th>
+                            <th>薪资范围</th>
+                            <th>工作地点</th>
+                            <th>发布日期</th>
+                            <th width="80">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                        <tr>
+                            <td style="color: #909399;">{{ loop.index }}</td>
+                            <td class="td-en">{{ job[1] }}</td>
+                            <td class="td-zh">{{ job[2] }}</td>
+                            <td class="td-company">{{ job[3] }}</td>
+                            <td style="color: #f56c6c;">{{ job[4] }}</td>
+                            <td>📍 {{ job[5] }}</td>
+                            <td>📅 {{ job[6] }}</td>
+                            <td>
+                                <button class="action-btn btn-del" onclick="deleteJob({{ job[0] }}, this)">删除</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 30px; color: #909399;">
+                                暂无数据，请点击左上角“抓取新数据”按钮。
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ECharts 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script>
+        // ================= 1. 统一定义翻译字典 =================
+        var companyDict = {
+            "literally-everything-you-need-to-do-as-a-startup-cto": "初创CTO必备指南",
+            "HR-Interviews-Software-Development": "HR面试题库(软件开发)",
+            "RP-Music-Radio": "RP音乐电台",
+            "SNIS-Crypto-News-Intelligence-System-": "SNIS加密新闻情报",
+            "sandbox-repo": "沙盒仓库",
+            "vaked-base": "Vaked基础架构",
+            "955.WLB": "955工作生活平衡",
+            "resources": "资源分享库",
+            "FYI": "FYI情报站",
+            "til": "TIL每日一学",
+            "TheStartupIjsa": "创业孵化项目",
+            "public-benefits-studio": "公益服务工作室",
+            "chimoney-community-projects": "ChiMoney社区项目",
+            "DEI": "DEI多元包容",
+            "goupaz.com": "Goupaz平台",
+            "techstack": "技术栈评估",
+            "meta": "Meta综合",
+            "covid-vaxx": "疫苗数据统计",
+            "neighborhood-hiring": "社区招聘",
+            "neighborhood-watch-app": "社区守望APP",
+            "Dada-Dev-Studios": "达达开发者工作室",
+            "informrApp": "Informr应用",
+            "marketing-content": "营销内容库",
+            "health-wellness-app": "健康应用"
+        };
+
+        // ================= 2. 格式化表格中的公司名称 =================
+        function formatTableCompanyNames() {
+            var rows = document.querySelectorAll("tbody tr");
+            rows.forEach(function(row) {
+                var companyCell = row.querySelector(".td-company");
+                if (companyCell) {
+                    var originalName = companyCell.innerText.trim();
+
+                    if (companyDict[originalName]) {
+                        companyCell.innerText = companyDict[originalName];
+                    }
+                    else if (originalName.length > 20) {
+                        companyCell.innerText = originalName.substring(0, 20) + "...";
+                    }
+                }
+            });
+        }
+
+        // ================= 3. 图表渲染 =================
+        var myChart = echarts.init(document.getElementById('chart-container'));
+
+        function renderChart() {
+            var companies = {};
+            var rows = document.querySelectorAll("tbody tr");
+
+            rows.forEach(function(row) {
+                var companyCell = row.querySelector(".td-company");
+                var companyName = companyCell ? companyCell.innerText : "";
+
+                if(companyName && companyName !== "公司名称 (仓库)" && !companyName.includes("暂无数据")) {
+                    companies[companyName] = (companies[companyName] || 0) + 1;
+                }
+            });
+
+            var chartData = [];
+            for (var key in companies) {
+                chartData.push({name: key, value: companies[key]});
+            }
+
+            chartData.sort(function(a, b) { return b.value - a.value; });
+            var topData = chartData.slice(0, 10);
+
+            var option = {
+                title: {
+                    text: '各项目岗位数量分布 (Top 10)',
+                    left: 'center',
+                    top: 0,
+                    textStyle: { fontSize: 16, color: '#303133' }
+                },
+                tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c} ({d}%)' },
+                legend: {
+                    type: 'scroll',
+                    bottom: 0,
+                    data: topData.map(function(item){ return item.name; })
+                },
+                series: [{
+                    name: '岗位数量',
+                    type: 'pie',
+                    radius: ['35%', '60%'],
+                    center: ['50%', '45%'],
+                    avoidLabelOverlap: true,
+                    itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 },
+                    label: { show: true, formatter: '{b}: {c}' },
+                    data: topData
+                }]
+            };
+
+            if (topData.length > 0) {
+                myChart.setOption(option);
+            } else {
+                myChart.clear(); // 数据全删完时清空图表
+            }
+        }
+
+        // ================= 4. 页面加载完毕后执行 =================
+        document.addEventListener("DOMContentLoaded", function() {
+            formatTableCompanyNames();
+            renderChart();
+        });
+
+        // ================= 5. 无刷新删除与序号重排 =================
+        function deleteJob(jobId, btnElement) {
+            if (!confirm('确定要删除这条数据吗？')) {
+                return;
+            }
+
+            fetch('/delete/' + jobId, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 移除当前行
+                    var row = btnElement.closest('tr');
+                    row.remove();
+
+                    // 重新排列剩余行的序号
+                    var tbody = document.querySelector("tbody");
+                    var remainingRows = tbody.querySelectorAll("tr");
+                    remainingRows.forEach(function(r, index) {
+                        if (r.cells.length > 1) {
+                            r.cells[0].innerText = index + 1;
+                        }
+                    });
+
+                    // 数字统计减 1
+                    var statsText = document.querySelector('.stats-bar strong');
+                    if (statsText) {
+                        var currentCount = parseInt(statsText.innerText);
+                        statsText.innerText = currentCount - 1;
+                    }
+
+                    // 重新渲染图表
+                    renderChart();
+                }
+            })
+            .catch(error => {
+                alert('删除失败，请检查网络');
+            });
+        }
+
+        // ================= 6. 翻译引导弹窗 =================
+        function showTranslateTip() {
+            var overlay = document.createElement('div');
+            overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; display:flex; justify-content:center; align-items:center;";
+
+            var card = document.createElement('div');
+            card.style.cssText = "background:white; padding:30px; border-radius:8px; max-width:450px; text-align:left; box-shadow:0 10px 30px rgba(0,0,0,0.2);";
+
+            card.innerHTML = `
+                <h3 style="color:#303133; margin-top:0; text-align:center;">🌐 浏览器原生翻译引擎</h3>
+                <p style="color:#606266; font-size:14px; line-height:1.6;">
+                    系统在数据入库时已经对<strong>职位名称</strong>进行了自动中文翻译，您可直接使用中文搜索。<br><br>
+                    如果需要将页面上的其他专有名词（如公司名、按钮等）也转为中文，请在当前页面 <b>点击鼠标右键</b>，选择 <b>“翻译成中文”</b>。
+                </p>
+                <div style="text-align:center; margin-top:20px;">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="btn btn-primary" style="padding: 8px 30px;">我知道了</button>
+                </div>
+            `;
+
+            overlay.appendChild(card);
+            document.body.appendChild(overlay);
+        }
+    </script>
+</body>
+</html>
